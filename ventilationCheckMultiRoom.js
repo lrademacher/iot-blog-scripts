@@ -21,18 +21,53 @@ const namespace = ``;
 
 const rooms = [
     {
-        roomName: `sleepingRoom`,
-        outsideHumidityState: `***FILL IN YOUR STATE***`,
-        outsideTemperatureState: `***FILL IN YOUR STATE***`,
-        insideHumidityState: `***FILL IN YOUR STATE***`,
-        insideTemperatureState: `***FILL IN YOUR STATE***`,
+        roomName: `office`,
+        outsideHumidityState: `accuweather.0.Current.RelativeHumidity`,
+        outsideTemperatureState: `accuweather.0.Current.Temperature`,
+        insideHumidityState: `zigbee.0.00124b002269c07b.humidity`,
+        insideTemperatureState: `zigbee.0.00124b002269c07b.temperature`,
+        humidityThreshold: 2, /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+        minHumidity: 45 /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+    },
+    {
+        roomName: `bathroom`,
+        outsideHumidityState: `accuweather.0.Current.RelativeHumidity`,
+        outsideTemperatureState: `accuweather.0.Current.Temperature`,
+        insideHumidityState: `zigbee.0.a4c138f84b402c2a.humidity`,
+        insideTemperatureState: `zigbee.0.a4c138f84b402c2a.temperature`,
+        humidityThreshold: 2, /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+        minHumidity: 45 /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+    },
+    {
+        roomName: `living_room`,
+        outsideHumidityState: `accuweather.0.Current.RelativeHumidity`,
+        outsideTemperatureState: `accuweather.0.Current.Temperature`,
+        insideHumidityState: `zigbee.0.a4c138c8a3254d2f.humidity`,
+        insideTemperatureState: `zigbee.0.a4c138c8a3254d2f.temperature`,
+        humidityThreshold: 2, /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+        minHumidity: 45 /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+    },
+    {
+        roomName: `cellar`,
+        outsideHumidityState: `accuweather.0.Current.RelativeHumidity`,
+        outsideTemperatureState: `accuweather.0.Current.Temperature`,
+        insideHumidityState: `zigbee.0.00124b00226a138f.humidity`,
+        insideTemperatureState: `zigbee.0.00124b00226a138f.temperature`,
+        humidityThreshold: 2, /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+        minHumidity: 45 /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
+    },
+    {
+        roomName: `bedroom`,
+        outsideHumidityState: `accuweather.0.Current.RelativeHumidity`,
+        outsideTemperatureState: `accuweather.0.Current.Temperature`,
+        insideHumidityState: `zigbee.0.a4c138d6afc5ce8f.humidity`,
+        insideTemperatureState: `zigbee.0.a4c138d6afc5ce8f.temperature`,
         humidityThreshold: 2, /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
         minHumidity: 45 /* YOU ARE ALLOWED TO CHANGE IF YOU WANT */
     }
 ];
 
 const triggersInsideHumidity = [];
-const triggersAlexa = [];
 
 try {
     // create counter outside of rooms
@@ -70,58 +105,15 @@ for (const room of rooms) {
             write: false,
             name: `${room.roomName} Lüftungsempfehlung`
         });
-
-        const triggerId = await createStateAsync(`${namespace ? `${namespace}.` : ''}${room.roomName}.alexaTriggerLuftfeuchtigkeit`, {
-            type: `boolean`,
-            read: true,
-            write: true,
-            role: `button`,
-            name: `${room.roomName} Alexa Trigger Luftfeuchtigkeit`,
-            smartName: {
-                de: `${room.roomName} Alexa Trigger Luftfeuchtigkeit`
-            }
-        });
-
-        triggersAlexa.push(triggerId);
+        
         triggersInsideHumidity.push(room.insideHumidityState);
+        triggersInsideHumidity.push(room.insideTemperatureState);
+        triggersInsideHumidity.push(room.outsideHumidityState);
+        triggersInsideHumidity.push(room.outsideTemperatureState);
     } catch (e) {
         log(`Could not create states for room ${room.roomName}: ${e}`, `error`);
     }
 } // endFor
-
-on({id: triggersAlexa, change: `any`}, obj => {
-    if (logging) log(`Alexa ventilation check triggered`, `info`);
-    const room = rooms[triggersAlexa.indexOf(obj.id)];
-    const ventilate = getState(`${namespace ? `${namespace}.` : ''}${room.roomName}.ventilationRecommendation`).val;
-    const randomState = getRandomArbitrary(1, 2);
-    let text;
-
-    if (ventilate) {
-        switch (randomState) {
-            case 1:
-                text = `Du solltest lüften, da es draußen trockener ist`;
-                break;
-            case 2:
-                text = `Lüfte, es ist so feucht hier drin`;
-                break;
-        } // endSwitch
-    } else {
-        switch (randomState) {
-            case 1:
-                text = `Du solltest nicht lüften`;
-                break;
-            case 2:
-                text = `Bitte nicht lüften`;
-                break;
-        } // endSwitch
-    } // endElse
-
-    // Get serial number of last used echo device, maybe timeout is unnecessary with new adapter version
-    setTimeout(() => {
-        const serialNumber = getState(`alexa2.0.History.serialNumber`).val;
-        setState(`alexa2.0.Echo-Devices.${serialNumber}.Commands.speak`, text, false);
-    }, 300);
-});
 
 on({id: triggersInsideHumidity, change: `any`}, obj => {
     const room = rooms[triggersInsideHumidity.indexOf(obj.id)];
@@ -164,7 +156,3 @@ function ventilateRoom(relHumidityInside, tempInside, relHumidityOutside, tempOu
     res.ventilate = res.diff > threshold && relHumidityInside > minHumidity;
     return res;
 } // endVentilateRoom
-
-function getRandomArbitrary(min, max) {
-    return Math.round(Math.random() * ((max + 0.4) - (min - 0.4)) + (min - 0.4));
-} // endGetRandomArbitrary
